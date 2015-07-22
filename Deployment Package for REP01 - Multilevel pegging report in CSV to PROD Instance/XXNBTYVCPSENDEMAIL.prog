@@ -19,7 +19,8 @@
 #	23-Jun-2015					Erwin Ramos				Added "-e 'my_hdr From:NoReply@nbty.com'" code to change the sender name to NoReply@nbty.
 #	09-Jun-2015		REP-02		Albert Flores			Rep 02 - Detailed Error Reports	
 #	16-Jul-2015					Erwin Ramos				Added the gzip command for Multilevel Pegging to zip the output file. 	
-#	22-Jul-2015					Albert Flores			Added $output_file in removing files from tmp																		
+#	22-Jul-2015					Albert Flores			Added $output_file in removing files from tmp		
+#	23-Jul-2015		EXT10		Erwin Ramos				Added Interval and sleep for output file validation because of timing issue in EXT10. 																
 ####################################################################################################################
 
 new_filename="$5"; #new filename of the output file
@@ -43,6 +44,13 @@ lf17_old_filename="${21}"; #path and filename of the output file for sales order
 lf19_new_filename="${22}"; #new filename of the output file for item cost
 lf19_old_filename="${23}"; #path and filename of the output file for item cost generated in Oracle Application
 # End AFlores
+
+# Start 23-Jul-2015 :ERR- added variable due to timing issue in EXT10 object 
+c_sec="s"; 
+P_INTERVAL=1;
+v_counter=0;
+P_RETRIES=300;
+# END 23-Jul-2015 :ERR
 
 # 15-Apr-2015: Added this syntax to resolved defect #151 email verbiage.
 
@@ -141,9 +149,28 @@ elif [ ! -z "$rep02_output_file" ] && [ ! -z "$old_filename" ]; then
 		echo "$message" | mutt -s "$subject" -a $output_file $rep02_output_file $recipient -c $recipient_c -b $recipient_b -e 'my_hdr From:NoReply@nbty.com'
 		echo "Sending email notification for detailed error reports is successful."
 	fi
-	
-	
+
 else
+
+# Start 23-Jul-2015 :ERR- validation of output file due to timing issue in EXT10 object 	
+	while [ $v_counter -le $P_RETRIES ] 
+	do
+		if [ -f "$old_filename" ] 
+		then 
+			break
+		else 
+			v_counter=`expr $v_counter + 1`
+	
+			if 
+				[ $v_counter -gt $P_RETRIES ]
+			then
+				break
+			fi
+			
+			sleep $P_INTERVAL$c_sec	
+		fi
+	done
+# END 23-Jul-2015 :ERR  
 	
 	cp -f $old_filename "/tmp/$new_filename" #rename old file and store in temporary directory
 	output_file="/tmp/$new_filename*" #update output file using the copied log 
